@@ -9,39 +9,39 @@ Our framework consists of four stages: data preprocessing, feature engineering, 
 \begin{tikzpicture}[
  x=1cm,y=1cm,>=Latex,
  box/.style={draw=blue!55!black,fill=blue!4,rounded corners=2pt,
-   minimum width=3.12cm,minimum height=1.85cm,text width=2.83cm,
-   align=center,inner sep=4pt,font=\sffamily\small},
+   minimum width=3.0cm,minimum height=1.65cm,text width=2.70cm,
+   align=center,inner sep=4pt,font=\sffamily\scriptsize},
  output/.style={draw=teal!65!black,fill=teal!5,rounded corners=2pt,
-   minimum width=6.40cm,minimum height=1.25cm,text width=6.02cm,
-   align=center,inner sep=5pt,font=\sffamily\small},
+   minimum width=6.5cm,minimum height=1.13cm,text width=6.1cm,
+   align=center,inner sep=5pt,font=\sffamily\scriptsize},
  prior/.style={draw=orange!70!black,fill=orange!6,rounded corners=2pt,
-   minimum width=5.0cm,minimum height=1.08cm,text width=4.65cm,
-   align=center,inner sep=4pt,font=\sffamily\small},
+   minimum width=5.3cm,minimum height=1.02cm,text width=5cm,
+   align=center,inner sep=4pt,font=\sffamily\scriptsize},
  arrow/.style={-{Latex[length=2.5mm]},thick,draw=blue!60!black,shorten >=2pt,shorten <=2pt},
- note/.style={font=\sffamily\scriptsize,text=black!75,fill=white,inner sep=2pt}
+ note/.style={font=\sffamily\tiny,text=black!75,fill=white,inner sep=2pt}
 ]
 % Each row has reserved gutters for arrows and labels.
-\node[box] (input) at (1.65,5.2) {\textbf{1. CGPS pose sequences}\\[5pt]110 children; 1,185 videos\\339,236 frames; 133 joints\\Four camera viewpoints};
-\node[box] (clean) at (5.65,5.2) {\textbf{2. Quality control}\\[5pt]Confidence filtering\\Outlier interpolation\\Two-pass temporal smoothing};
-\node[box] (feat) at (9.65,5.2) {\textbf{3. Biomechanics}\\[5pt]Hip-centered coordinates\\Sagittal / coronal angles\\Clinical and statistical features};
-\node[box] (model) at (13.65,5.2) {\textbf{4. Ensemble learning}\\[5pt]GB / RF / Extra Trees\\Stabilized feature ranking\\Multi-seed aggregation};
+\node[box] (input) at (1.6,5.6) {\textbf{1. CGPS pose sequences}\\[5pt]110 children; 1,185 videos\\339,236 frames; 133 joints\\Four camera viewpoints};
+\node[box] (clean) at (5.6,5.6) {\textbf{2. Quality control}\\[5pt]Confidence filtering\\Outlier interpolation\\Two-pass SG smoothing};
+\node[box] (feat) at (9.6,5.6) {\textbf{3. Biomechanics}\\[5pt]Hip-centered coordinates\\Sagittal / coronal angles\\Clinical feature statistics};
+\node[box] (model) at (13.6,5.6) {\textbf{4. Ensemble learning}\\[5pt]GB / RF / Extra Trees\\Stable feature selection\\Multi-seed aggregation};
 \draw[arrow] (input.east)--(clean.west);
 \draw[arrow] (clean.east)--(feat.west);
 \draw[arrow] (feat.east)--(model.west);
 \node[output] (t1) at (4.0,2.55) {\textbf{Track 1: EVGS item prediction}\\34 binary limb-level outputs (17 per limb)\\Total score from predicted items};
 \node[output] (t2) at (12.0,2.55) {\textbf{Track 2: CP gait classification}\\Five gait-pattern classes per limb\\Ensemble probabilities + clinical rules};
 % Distinct vertical paths; both arrows terminate on the top edge.
-\draw[arrow] (feat.south) -- ++(0,-0.55) -| (t1.north);
-\draw[arrow] (model.south) -- ++(0,-0.40) -| (t2.north);
+\draw[arrow] (feat.south) -- (9.6,3.83) -- (4.0,3.83) -- (t1.north);
+\draw[arrow] (model.south) -- (13.6,3.53) -- (12.0,3.53) -- (t2.north);
 \draw[arrow,dashed] (t1.east)--node[above,note]{EVGS transfer} (t2.west);
-\node[prior] (clinical) at (4.0,-0.15) {\textbf{Clinical gait-pattern priors}\\Equinus / jump / apparent equinus / crouch / WNL};
-\node[prior] (post) at (12.0,-0.15) {\textbf{Prediction refinement}\\Clinical-rule fusion; bilateral prior; cross-version voting};
+\node[prior] (clinical) at (4.0,-0.1) {\textbf{Clinical pattern priors}\\Equinus / jump / crouch / WNL\\Apparent equinus};
+\node[prior] (post) at (12.0,-0.1) {\textbf{Prediction refinement}\\Rule fusion; bilateral prior\\Cross-version voting};
 \draw[arrow] (clinical.east)--node[above,note]{rule probabilities} (post.west);
 \draw[arrow] (t2.south)--(post.north);
 \end{tikzpicture}%
 }
 \caption{\textbf{Overview of the domain-knowledge-guided hybrid framework.}
-Multi-view CGPS pose sequences undergo confidence-aware cleaning, biomechanical feature extraction and tree-ensemble learning. Track 1 predicts 34 EVGS indicators; Track 2 predicts five gait-pattern classes. EVGS features are transferred between tracks (dashed arrow), and clinical-rule probabilities are incorporated at prediction refinement together with bilateral and cross-version priors. All arrows have dedicated routing space.}
+Multi-view CGPS pose sequences undergo confidence-aware cleaning, biomechanical feature extraction and tree-ensemble learning. Track 1 predicts 34 EVGS indicators; Track 2 predicts five gait-pattern classes. EVGS features are transferred between tracks (dashed arrow), and clinical-rule probabilities are incorporated at prediction refinement together with bilateral and cross-version priors. Arrows are routed outside the module boundaries.}
 \label{fig:pipeline}
 \end{figure*}
 
