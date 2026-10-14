@@ -6,3 +6,15 @@ We presented a domain-knowledge-guided hybrid framework for the CVPR 2026 CV4CHL
 Through systematic ablation across 14 solution versions, we summarized 12 empirical observations that describe the behavior of machine learning in small-sample clinical settings. Notable findings include disagreement between cross-validation and competition feedback under potential distribution shift, the superiority of hardcoded clinical rules over data-fitted rules when training samples are scarce, and the risk of naively combining individually effective methods. These insights extend beyond the current challenge and may guide future work in medical AI where data scarcity is prevalent.
 
 Our within-submission decomposition suggests that Track~2 accounts for most of the measured improvement over our baseline, suggesting that handcrafted feature engineering approaches have inherent limitations for fine-grained kinematic scoring. Future directions include exploring end-to-end deep learning architectures such as Spatial-Temporal Graph Convolutional Networks~\cite{yan2018spatial} and Transformer-based sequence models that can learn discriminative temporal patterns directly from raw keypoint sequences, as well as multi-task learning frameworks that jointly optimize EVGS scoring and gait classification objectives.
+
+
+\section{Limitations and Responsible Use}
+\label{sec:limitations}
+\noindent\textbf{Dataset size and shift.}
+The study is based on a small, single-institution pediatric cohort and historical competition feedback. With few examples of rare gait subtypes, class-specific performance and model calibration are uncertain. Multiple views of a patient are correlated, so all future resampling and model selection should be patient-disjoint. The observed disagreement between cross-validation and competition feedback is compatible with distribution shift but does not independently establish differences in pose noise or their causal effect.
+
+\noindent\textbf{Clinical interpretation.}
+Two-dimensional image-plane joint angles are camera-dependent approximations rather than validated three-dimensional kinematic measurements. Threshold rules should therefore be treated as engineering priors, not clinical diagnostic criteria. Bilateral symmetry is an empirical regularity in the reported subset, not a universal property of cerebral palsy, and a symmetry prior may mask genuine asymmetry. The system is intended as decision-support research and has not been prospectively validated for diagnosis, treatment selection, or patient-level clinical deployment.
+
+\noindent\textbf{Privacy and reproducibility.}
+The challenge provides derived pose sequences rather than raw videos to protect pediatric participants. Reproduction should respect the competition's non-commercial data license and restrictions on redistributing patient data. Future validation should report per-class confusion matrices, calibration, confidence intervals, patient-disjoint cross-validation, and independent-site evaluation; none are claimed as completed here.
