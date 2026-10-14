@@ -1,36 +1,27 @@
-% CVPR 2026 Paper Template; see https://github.com/cvpr-org/author-kit
 
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
-%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
-% \usepackage{cvpr}              % To produce the CAMERA-READY version
 \usepackage[margin=0.85in]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{authblk}
 \renewcommand\Affilfont{\small}
-\setlength{\affilsep}{0.4em}      % To produce the REVIEW version
-% \usepackage[pagenumbers]{cvpr} % To force page numbers, e.g. for an arXiv version
-
-% Import additional packages in the preamble file, before hyperref
+\setlength{\affilsep}{0.4em}
+\usepackage[numbers,sort&compress]{natbib}
 \input{preamble}
+% Standalone preprint replacements for CVPR style shorthand.
+\providecommand{\etal}{\textit{et al.}}
+\providecommand{\eg}{e.g.\@}
+\providecommand{\ie}{i.e.\@}
+\providecommand{\cf}{cf.\@}
 
-% It is strongly recommended to use hyperref, especially for the review version.
-% hyperref with option pagebackref eases the reviewers' job.
-% Please disable hyperref *only* if you encounter grave issues, 
-% e.g. with the file validation for the camera-ready version.
-%
-% If you comment hyperref and then uncomment it, you should delete *.aux before re-running LaTeX.
-% (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
-\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
-\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
-
-%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\definecolor{preprintblue}{rgb}{0.16,0.36,0.60}
+\usepackage[breaklinks,colorlinks,allcolors=preprintblue]{hyperref}
 
 %%%%%%%%% TITLE
 \title{Domain-Knowledge-Guided Hybrid Framework for Children's Gait Visual Analysis}
 
-%%%%%%%%% AUTHORS - PLEASE UPDATE
+%%%%%%%%% AUTHORS
 \author[1]{Yu Sun}
 \author[2]{Zixuan Wang}
 \affil[1]{University of Pennsylvania}
