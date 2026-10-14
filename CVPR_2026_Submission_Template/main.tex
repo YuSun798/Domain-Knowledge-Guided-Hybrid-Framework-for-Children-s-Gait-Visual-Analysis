@@ -8,6 +8,11 @@
 \renewcommand\Affilfont{\small}
 \setlength{\affilsep}{0.4em}
 \usepackage[numbers,sort&compress]{natbib}
+% Ignore obsolete line-number commands in .aux files from the former CVPR template.
+\makeatletter
+\providecommand{\@LN@col}[1]{}
+\providecommand{\@LN}[2]{}
+\makeatother
 \input{preamble}
 % Standalone preprint replacements for CVPR style shorthand.
 \providecommand{\etal}{\textit{et al.}}
