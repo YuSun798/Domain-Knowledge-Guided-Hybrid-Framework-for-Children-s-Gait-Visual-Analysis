@@ -4,7 +4,7 @@
 \subsection{Dataset and Evaluation Metrics}
 \label{sec:dataset}
 
-The CGPS dataset~\cite{cv4chl2026} contains 2D keypoint annotations from multi-view clinical video recordings of 110 pediatric patients at Shenzhen Children's Hospital. Each frame provides 133 COCO-WholeBody~\cite{jin2020whole} keypoints detected by Sapiens-2B~\cite{khirodkar2024sapiens} with bounding boxes from SAM~\cite{kirillov2023segment}. The dataset spans 339,236 frames across 1,185 videos captured from four viewpoints (left sagittal, right sagittal, forward coronal, backward coronal) at 1920$\times$1080 resolution. Track~1 includes 78 training and 16 test patients; Track~2 includes 18 training and 9 test patients.
+The CGPS dataset~\cite{cv4chl2026} contains 2D keypoint annotations from multi-view clinical video recordings of 110 pediatric patients at Shenzhen Children's Hospital. Each frame provides 133 COCO-WholeBody~\cite{jin2020whole} keypoints detected by Sapiens-2B~\cite{khirodkar2024sapiens} with bounding boxes produced using the challenge organizers' segmentation pipeline~\cite{cv4chl2026}. The dataset spans 339,236 frames across 1,185 videos captured from four viewpoints (left sagittal, right sagittal, forward coronal, backward coronal) at 1920$\times$1080 resolution. Track~1 includes 78 training and 16 test patients; Track~2 includes 18 training and 9 test patients.
 
 \noindent\textbf{Evaluation Metrics.}
 For Track~1, the score combines item-level accuracy and normalized RMSE of total scores:
