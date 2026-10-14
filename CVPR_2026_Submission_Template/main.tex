@@ -4,7 +4,12 @@
 
 %%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
 % \usepackage{cvpr}              % To produce the CAMERA-READY version
-\usepackage[review]{cvpr}      % To produce the REVIEW version
+\usepackage[margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{authblk}
+\renewcommand\Affilfont{\small}
+\setlength{\affilsep}{0.4em}      % To produce the REVIEW version
 % \usepackage[pagenumbers]{cvpr} % To force page numbers, e.g. for an arXiv version
 
 % Import additional packages in the preamble file, before hyperref
@@ -21,17 +26,16 @@
 \usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 
 %%%%%%%%% PAPER ID  - PLEASE UPDATE
-\def\paperID{*****} % *** Enter the Paper ID here
-\def\confName{CVPR}
-\def\confYear{2026}
 
 %%%%%%%%% TITLE
 \title{Domain-Knowledge-Guided Hybrid Framework for Children's Gait Visual Analysis}
 
 %%%%%%%%% AUTHORS - PLEASE UPDATE
-\author{Anonymous CV4CHL Team\\
-{\tt\small anonymous@email.com}
-}
+\author[1]{Yu Sun}
+\author[2]{Zixuan Wang}
+\affil[1]{University of Pennsylvania}
+\affil[2]{University of California, San Diego}
+\date{}
 
 \begin{document}
 \maketitle
@@ -43,7 +47,7 @@
 \input{sec/5_conclusion}
 {
     \small
-    \bibliographystyle{ieeenat_fullname}
+    \bibliographystyle{plainnat}
     \bibliography{main}
 }
 
