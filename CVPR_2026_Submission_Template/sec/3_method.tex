@@ -28,7 +28,7 @@ Our framework consists of four stages: data preprocessing, feature engineering, 
 \node[clinical] (rules) at (3.4,-2.35) {\textbf{Clinical prior}\\Equinus / jump / apparent\\equinus / crouch / WNL};
 \draw[flow] (learn.south) -- ++(0,-0.38) -| (t1.north);
 \draw[flow] (learn.south) -- ++(0,-0.38) -| (t2.north);
-\draw[flow] (rules.east) -- node[above,font=\tiny]{rule probabilities} (t2.west);
+\draw[flow] (rules.south) -- ++(0,-1.65) -| node[pos=0.15,below,font=\tiny]{clinical-rule probabilities} (post.west);
 \draw[flow,dashed] (t1.east) -- node[above,font=\tiny]{EVGS transfer} (t2.west);
 \node[draw=black!35,rounded corners=2pt,fill=black!3,align=center,
       minimum width=7.4cm,minimum height=0.57cm] (post) at (9.4,-4.0)
@@ -133,7 +133,7 @@ We leverage the strong correlation between EVGS profiles and gait patterns obser
     \small
     \caption{\textbf{EVGS profile by gait pattern.} Total EVGS and key discriminative items for each gait type, derived from the 17 overlapping patients.}
     \label{tab:evgs_gait}
-    \begin{tabular}{lccl}
+    \begin{tabular}{lcl}
         \toprule
         Gait Type & Total EVGS & Key Items \\
         \midrule
