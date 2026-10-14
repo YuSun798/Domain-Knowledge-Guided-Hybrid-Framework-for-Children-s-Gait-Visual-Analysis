@@ -1,0 +1,189 @@
+\section{Methodology}
+\label{sec:method}
+
+Our framework consists of four stages: data preprocessing, feature engineering, model training and prediction, and post-processing. Figure~\ref{fig:pipeline} illustrates the overall pipeline.
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}{0.24\linewidth}
+    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
+      \centering\footnotesize
+      \textbf{Stage 1}\\[3pt]
+      Hierarchical\\Data Cleaning\\[3pt]
+      Confidence filter\\$\downarrow$\\Double-pass SG\\$\downarrow$\\Outlier interp.
+    }}
+    \caption{Data cleaning}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.24\linewidth}
+    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
+      \centering\footnotesize
+      \textbf{Stage 2}\\[3pt]
+      Feature\\Engineering\\[3pt]
+      Spatial norm.\\$\downarrow$\\View-specific\\angles\\$\downarrow$\\Clinical features
+    }}
+    \caption{Features}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.24\linewidth}
+    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
+      \centering\footnotesize
+      \textbf{Stage 3}\\[3pt]
+      Dual-Track\\Prediction\\[3pt]
+      T1: Per-item\\ensemble\\[3pt]
+      T2: 60\%ML\\+ 40\%Rules
+    }}
+    \caption{Prediction}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.24\linewidth}
+    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
+      \centering\footnotesize
+      \textbf{Stage 4}\\[3pt]
+      Post-\\Processing\\[3pt]
+      Cross-version\\ensemble\\$\downarrow$\\Bilateral\\symmetry prior
+    }}
+    \caption{Post-processing}
+  \end{subfigure}
+  \caption{\textbf{Overview of our domain-knowledge-guided hybrid framework.} The pipeline comprises four stages: (a)~hierarchical data cleaning with confidence filtering, temporal smoothing, and outlier interpolation; (b)~clinically-informed feature engineering extracting view-specific biomechanical features; (c)~dual-track prediction with ensemble ML for Track~1 and hybrid clinical-ML fusion for Track~2; (d)~cross-version ensemble and bilateral symmetry post-processing.}
+  \label{fig:pipeline}
+\end{figure*}
+
+\subsection{Hierarchical Data Cleaning}
+\label{sec:cleaning}
+
+The CGPS dataset provides 2D keypoints detected by Sapiens-2B~\cite{khirodkar2024sapiens} with per-keypoint confidence scores. Analysis of the competition forum reveals that the test set contains approximately 50\% more low-confidence keypoints than the training set, creating a significant distribution shift. We address this through a three-stage hierarchical cleaning pipeline.
+
+\noindent\textbf{Stage 1: Confidence-Based Filtering.}
+Following the official recommendation, we apply per-keypoint confidence filtering with a threshold of $\tau = 0.3$. For each frame, keypoints with confidence scores below $\tau$ are marked as missing and excluded from downstream feature computation. This operates at the individual keypoint level rather than the frame level, preserving high-confidence joints even when others are occluded.
+
+\noindent\textbf{Stage 2: Double-Pass Temporal Smoothing.}
+We apply a two-pass Savitzky-Golay filter~\cite{savitzky1964smoothing} to the temporal trajectory of each keypoint coordinate:
+\begin{equation}
+    \mathbf{x}_j^{(1)} = \text{SG}(\mathbf{x}_j;\, w_1,\, p), \quad \mathbf{x}_j^{(2)} = \text{SG}(\mathbf{x}_j^{(1)};\, w_2,\, p),
+\end{equation}
+where $\mathbf{x}_j$ denotes the temporal sequence of the $j$-th keypoint coordinate, $w_1 = 11$ and $w_2 = 5$ are the window sizes for the wide and narrow passes respectively, and $p = 3$ is the polynomial order. The wide pass removes large-scale jitter, while the narrow pass preserves fine-grained temporal dynamics. This double-pass strategy yields a consistent improvement of $+0.04$ over single-pass smoothing on the leaderboard.
+
+\noindent\textbf{Stage 3: Per-Joint Outlier Detection and Interpolation.}
+For each of 8 key anatomical joints (ankles, knees, hips, shoulders), we compute a running mean and standard deviation over a local window. Frames where any joint position deviates by more than $3\sigma$ from the running mean are flagged as outliers. The flagged keypoints are replaced via linear interpolation from neighboring valid frames:
+\begin{equation}
+    \hat{\mathbf{x}}_j(t) = \mathbf{x}_j(t_-) + \frac{t - t_-}{t_+ - t_-} \bigl(\mathbf{x}_j(t_+) - \mathbf{x}_j(t_-)\bigr),
+\end{equation}
+where $t_-$ and $t_+$ are the nearest valid frames before and after the outlier at time $t$.
+
+\subsection{Feature Engineering}
+\label{sec:features}
+
+We extract features from the cleaned keypoint sequences, organized into three categories.
+
+\noindent\textbf{Spatial Normalization.}
+All keypoint coordinates are normalized by centering on the hip midpoint and scaling by the torso length (distance from hip midpoint to neck), producing a unit-skeleton representation invariant to patient size and camera distance.
+
+\noindent\textbf{View-Specific Feature Extraction.}
+The CGPS dataset provides four views per patient: two sagittal (left, right) and two coronal (forward, backward). We exploit this multi-view structure by extracting view-appropriate features:
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textit{Sagittal features}: Hip flexion/extension, knee flexion, and ankle dorsiflexion/plantarflexion angles---computed from the corresponding sagittal view for each limb (left sagittal for left limb, right sagittal for right limb).
+    \item \textit{Coronal features}: Knee valgus/varus angle, pelvic obliquity, trunk lateral flexion, and scissoring index---extracted from forward and backward views.
+\end{itemize}
+
+\noindent\textbf{Statistical Aggregation.}
+For each computed angle or coordinate feature across a video's temporal sequence, we extract summary statistics: mean, standard deviation, minimum, maximum, range, median, 10th and 90th percentiles, skewness, and kurtosis. After feature selection, this yields approximately 50 features per view.
+
+\noindent\textbf{Clinical Gait Features.}
+We design features directly informed by clinical gait assessment criteria:
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textit{Equinus indicator}: Fraction of frames where ankle plantarflexion exceeds threshold.
+    \item \textit{Crouch indicator}: Fraction of frames where knee flexion exceeds threshold during stance.
+    \item \textit{Arm guard indicator}: Mean wrist height relative to shoulder height.
+    \item \textit{Pelvic tilt}: Mean anterior-posterior pelvic angle.
+\end{itemize}
+
+\subsection{Track~1: EVGS Scoring}
+\label{sec:track1}
+
+Track~1 requires predicting 17 binary EVGS items for each limb (left and right), yielding 34 binary classification sub-tasks per patient, plus a total score.
+
+\noindent\textbf{Per-Item Ensemble Classification.}
+For each of the 17 EVGS items, we train an independent ensemble of three model types: Gradient Boosting (GB)~\cite{friedman2001greedy}, Random Forest (RF)~\cite{breiman2001random}, and Extra Trees (ET)~\cite{geurts2006extremely}. Each model type is trained with 7 random seeds, yielding $3 \times 7 = 21$ classifiers per item. The final prediction is obtained by averaging the predicted probabilities:
+\begin{equation}
+    \hat{p}_i = \frac{1}{K} \sum_{k=1}^{K} f_k(\mathbf{x}), \quad \hat{y}_i = \mathbb{I}[\hat{p}_i > 0.5],
+\end{equation}
+where $K=21$ and $f_k$ denotes the $k$-th classifier.
+
+\noindent\textbf{Stable Feature Importance.}
+To address the instability of feature importance rankings on small datasets, we compute importance scores averaged across 20 random seeds and 2 model types (RF and ET). Features are ranked by this stabilized importance, and we retain the top-50 features to maintain a favorable feature-to-sample ratio ($\sim$78 patients / 50 features).
+
+\noindent\textbf{Total Score Computation.}
+The total EVGS score is computed as the sum of all 34 binary predictions: $\text{Total} = \sum_{i=1}^{34} \hat{y}_i$.
+
+\subsection{Track~2: Gait Pattern Classification}
+\label{sec:track2}
+
+Track~2 involves classifying gait patterns into five categories---True Equinus (type1), Jump Gait (type2), Apparent Equinus (type3), Crouch Gait (type4), and WNL---for patients with Bilateral Spastic CP. With only 18 training patients (and only 2 samples each for type4 and WNL), this track demands maximal exploitation of domain knowledge.
+
+\subsubsection{Patient-Level Classification}
+\label{sec:patient_level}
+
+A key observation from the training data is that 20 out of 22 patients (91\%) exhibit identical gait patterns in both limbs. We exploit this bilateral symmetry by performing classification at the patient level rather than the limb level: a single prediction per patient is applied to both limbs. This reduces effective noise by halving asymmetric labeling artifacts.
+
+\subsubsection{Cross-Track Knowledge Transfer}
+\label{sec:cross_track}
+
+We leverage the strong correlation between EVGS profiles and gait patterns observed in the 17 patients who appear in both tracks. Table~\ref{tab:evgs_gait} summarizes the characteristic EVGS profiles.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{\textbf{EVGS profile by gait pattern.} Total EVGS and key discriminative items for each gait type, derived from the 17 overlapping patients.}
+    \label{tab:evgs_gait}
+    \begin{tabular}{lccl}
+        \toprule
+        Gait Type & Total EVGS & Key Items \\
+        \midrule
+        WNL & $\sim$5 & Low across all items \\
+        True Equinus & 5--10 & Elevated ankle items \\
+        Jump Gait & 7--13 & Elevated pelvic tilt \\
+        Apparent Equinus & 7--12 & Normal ankle, flexed knee \\
+        Crouch Gait & 13--14 & Elevated knee \& ankle \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+For Track~2 patients also present in Track~1 training data, we directly use their EVGS labels as features. For Track~2-only patients, we first predict their EVGS scores using the Track~1 model and use these predictions as additional features. This cross-track transfer provides 17 highly discriminative features per limb.
+
+\subsubsection{Hybrid Clinical-ML Prediction}
+\label{sec:hybrid}
+
+Our central methodological contribution for Track~2 is a hybrid prediction strategy that combines ML predictions with rule-based clinical heuristics at the decision layer.
+
+\noindent\textbf{Rule-Based Clinical Classifier.}
+We define a rule-based classifier grounded in the clinical definitions of CP gait patterns~\cite{rodda2004classification}. For each patient, we compute normalized joint angles from sagittal keypoint sequences and apply threshold-based decision rules following the clinical taxonomy:
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{True Equinus}: Extended hip and knee with ankle equinus (plantarflexion).
+    \item \textbf{Jump Gait}: Flexed hip and knee with equinus and anterior pelvic tilt.
+    \item \textbf{Apparent Equinus}: Flexed hip and knee with normal ankle angle.
+    \item \textbf{Crouch Gait}: Excessive hip/knee flexion with ankle dorsiflexion.
+    \item \textbf{WNL}: Near-normal angles across all joints.
+\end{itemize}
+
+\noindent\textbf{Hybrid Fusion.}
+The final prediction combines ML and rule-based probabilities at the decision layer:
+\begin{equation}
+    \hat{\mathbf{p}}_{\text{final}} = \alpha \cdot \hat{\mathbf{p}}_{\text{ML}} + (1 - \alpha) \cdot \hat{\mathbf{p}}_{\text{rule}},
+    \label{eq:hybrid}
+\end{equation}
+where $\hat{\mathbf{p}}_{\text{ML}}$ and $\hat{\mathbf{p}}_{\text{rule}}$ are the 5-class probability vectors from the ML ensemble and rule-based classifier respectively, and $\alpha = 0.6$ is the ML weight. The predicted class is $\hat{y} = \argmax_k \hat{p}_{\text{final},k}$.
+
+We find empirically that $\alpha = 0.6$ strikes the optimal balance: pure ML ($\alpha = 1.0$) suffers from overfitting on 18 patients, while pure rules ($\alpha = 0.0$) fail because angles computed in the normalized coordinate space do not match clinical textbook thresholds directly (see Section~\ref{sec:laws}). The hybrid approach allows ML to calibrate the rule-based predictions while clinical knowledge compensates for ML's generalization weakness.
+
+\subsubsection{ML Component}
+The ML component mirrors the Track~1 architecture: an ensemble of GB, RF, and ET classifiers, each trained with multiple seeds. We apply aggressive feature selection, retaining only the top-26 features based on stabilized importance scores, to prevent overfitting on the extremely small training set ($\sim$18 patients / 26 features).
+
+\subsection{Cross-Version Ensemble}
+\label{sec:ensemble}
+
+A distinctive feature of our approach is the use of \textit{cross-version submission ensemble}. Rather than combining predictions from models with different hyperparameters (which share the same feature space), we combine predictions from entirely different solution versions with distinct feature engineering pipelines. Specifically, we perform weighted voting across three previous submissions:
+\begin{equation}
+    \hat{y}_{\text{final}} = \text{mode}\bigl(w_2 \cdot \hat{y}^{\text{V2}},\; w_4 \cdot \hat{y}^{\text{V4}},\; w_5 \cdot \hat{y}^{\text{V5}}\bigr),
+\end{equation}
+where $w_2 = 0.5$, $w_4 = 1.0$, and $w_5 = 1.5$ reflect the relative confidence in each version. This approach provides genuine prediction diversity because each version employs different feature extraction strategies, cleaning pipelines, and model configurations. As validated in Section~\ref{sec:laws}, this cross-version diversity is more beneficial than increasing the number of random seeds within a single pipeline.

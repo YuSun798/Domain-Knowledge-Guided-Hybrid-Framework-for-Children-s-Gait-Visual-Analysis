@@ -1,0 +1,152 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Dataset and Evaluation Metrics}
+\label{sec:dataset}
+
+The CGPS dataset~\cite{cv4chl2026} contains 2D keypoint annotations from multi-view clinical video recordings of 110 pediatric patients at Shenzhen Children's Hospital. Each frame provides 133 COCO-WholeBody~\cite{jin2020whole} keypoints detected by Sapiens-2B~\cite{khirodkar2024sapiens} with bounding boxes from SAM~\cite{kirillov2023segment}. The dataset spans 339,236 frames across 1,185 videos captured from four viewpoints (left sagittal, right sagittal, forward coronal, backward coronal) at 1920$\times$1080 resolution. Track~1 includes 78 training and 16 test patients; Track~2 includes 18 training and 9 test patients.
+
+\noindent\textbf{Evaluation Metrics.}
+For Track~1, the score combines item-level accuracy and normalized RMSE of total scores:
+$S_1 = (\text{Acc}_1 + 1 - \text{RMSE}/34) / 2$.
+For Track~2, the score combines limb-level accuracy and macro F1:
+$S_2 = (\text{Acc}_2 + F1_{\text{macro}}) / 2$.
+The final score is $S = (S_1 + S_2) / 2$.
+
+\subsection{Implementation Details}
+\label{sec:implementation}
+
+All models are implemented using scikit-learn~\cite{pedregosa2011scikit}. We use shallow tree-based ensembles: Gradient Boosting (100 estimators, max depth~3, learning rate~0.1), Random Forest (200 estimators, max depth~6), and Extra Trees (200 estimators, max depth~6). Feature selection retains the top-50 features for Track~1 and top-26 for Track~2, determined by stabilized importance across 20 seeds. The hybrid weight $\alpha = 0.6$ is selected through leaderboard validation. Leave-One-Out Cross-Validation (LOO-CV) is used for internal evaluation, though we note its unreliability for this dataset due to distribution shift (\cf Section~\ref{sec:laws}).
+
+\subsection{Main Results}
+\label{sec:main_results}
+
+Table~\ref{tab:main_results} presents the leaderboard scores across our solution versions, ordered chronologically. Our best submission (V7) achieves a combined score of 0.6664.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{\textbf{Leaderboard scores across solution versions.} Each version introduces specific methodological changes. The best result (V7) combines domain knowledge integration, aggressive cleaning, and cross-version ensemble.}
+    \label{tab:main_results}
+    \begin{tabular}{clc}
+        \toprule
+        Ver. & Key Strategy & Score \\
+        \midrule
+        V1 & Stat.\ features + GB/RF/ET baseline & 0.498 \\
+        V2 & + Clinical angles, sagittal view & 0.499 \\
+        V4 & + Patient-level T2, stable importance & 0.590 \\
+        V5 & + Data cleaning (single smooth) & 0.625 \\
+        V6 & V5 cleaning + V4 structure (combo) & 0.576 \\
+        \textbf{V7} & \textbf{+ Rule hybrid, double smooth, ens.} & \textbf{0.666} \\
+        V9 & + Gaussian-calibrated rules & 0.647 \\
+        V10 & + 100-seed ensemble & 0.556 \\
+        V11 & KNN zero-training baseline & 0.574 \\
+        V12c & Pure rule-based T2 & 0.416 \\
+        V13 & Item-specific T1 features & 0.645 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Track Decomposition Analysis}
+\label{sec:decomposition}
+
+To understand the contribution of each track, we conducted isolation experiments by combining one track from V7 with the corresponding track from V1 (baseline). Table~\ref{tab:decomposition} shows that 97\% of our total improvement originates from Track~2 ($\Delta S_2 = 0.326$), while Track~1 barely improved ($\Delta S_1 = 0.011$). This reveals that Track~1 remains the primary bottleneck.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{\textbf{Track decomposition via isolation experiments.} V7's improvement over baseline is almost entirely from Track~2.}
+    \label{tab:decomposition}
+    \begin{tabular}{lcc}
+        \toprule
+        Configuration & LB Score & $\Delta$ vs.\ V1 \\
+        \midrule
+        V1 (baseline) & 0.498 & --- \\
+        V7-T1 + V1-T2 & 0.503 & $\Delta S_1 \approx +0.011$ \\
+        V1-T1 + V7-T2 & 0.661 & $\Delta S_2 \approx +0.326$ \\
+        V7 (both tracks) & 0.666 & $+0.168$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Ablation Studies}
+\label{sec:ablation}
+
+We systematically ablate each component of our framework. Table~\ref{tab:ablation} summarizes the contribution of each key design choice.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{\textbf{Ablation study.} Incremental contribution of each component, estimated from controlled version comparisons.}
+    \label{tab:ablation}
+    \begin{tabular}{lc}
+        \toprule
+        Component & Contribution \\
+        \midrule
+        Baseline (V1) & 0.498 \\
+        + Patient-level T2 classification & +0.092 \\
+        + Single-pass temporal cleaning & +0.035 \\
+        + Double-pass temporal cleaning & +0.041 \\
+        + 40\% rule hybrid for T2 & +0.076 \\
+        + Cross-track EVGS features & +0.035 \\
+        + Cross-version ensemble & +0.030 \\
+        \midrule
+        Best (V7) & 0.666 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Data Cleaning.}
+Data cleaning is the single most impactful factor. Without cleaning, scores plateau around 0.50--0.59. Single-pass smoothing (V5) improves to 0.625, and double-pass smoothing (V7) further improves to 0.666. Crucially, cleaning shows zero or negative impact on LOO-CV but massive impact on the leaderboard, confirming that the test set is significantly noisier.
+
+\noindent\textbf{Rule Integration Layer.}
+The layer at which domain knowledge is integrated matters critically. Rules as features (V5) add $+0.035$; rules at the prediction layer with 40\% weight (V7) add $+0.076$. However, pure rules without ML (V12c) score only 0.416---worse than the baseline---because angles in normalized coordinate space do not directly match clinical thresholds. The optimal operating point lies at approximately 40\% rule weight.
+
+\noindent\textbf{Ensemble Granularity.}
+Moderate ensembling (7 seeds $\times$ 3 models $=$ 21 classifiers) is effective, but excessive ensembling (100 seeds $\times$ 3 models $=$ 300 classifiers in V10) \textit{degrades} performance by 0.110, as over-averaging drives probabilities toward uniform distributions and destroys discriminative power.
+
+\subsection{Empirical Laws for Small-Sample Clinical ML}
+\label{sec:laws}
+
+Through systematic experimentation across 14 solution versions, we identify 12 empirical laws. Table~\ref{tab:laws} provides a summary. We highlight three key findings below.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{\textbf{Twelve empirical laws} derived from systematic experimentation. Confidence rated on a 5-star scale based on the number of supporting experiments.}
+    \label{tab:laws}
+    \resizebox{\linewidth}{!}{
+    \begin{tabular}{clc}
+        \toprule
+        \# & Empirical Law & Conf. \\
+        \midrule
+        1 & Data cleaning is the \#1 LB driver & 5/5 \\
+        2 & Hardcoded rules $>$ data-fitted rules & 4/5 \\
+        3 & Rules at prediction layer $>$ rules as features & 5/5 \\
+        4 & Naive combination of good methods can hurt & 5/5 \\
+        5 & LOO-CV is anti-correlated with LB score & 5/5 \\
+        6 & Patient-level T2 classification is effective & 4/5 \\
+        7 & Moderate ensemble $>$ excessive ensemble & 5/5 \\
+        8 & KNN fails for Track~1 (78 patients) & 3/5 \\
+        9 & 97\% of improvement comes from Track~2 & 5/5 \\
+        10 & Item-specific T1 feature restriction hurts & 3/5 \\
+        11 & Pure rules fail in normalized coordinate space & 4/5 \\
+        12 & Cross-version ensemble adds genuine diversity & 3/5 \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+\noindent\textbf{Law 5: Cross-Validation is Anti-Correlated with Test Performance.}
+The most counter-intuitive finding is that LOO-CV scores are negatively correlated with leaderboard performance. V4 achieves CV$=$0.681 but LB$=$0.590, while V5 achieves CV$=$0.487 but LB$=$0.625. This arises because training and test sets have different noise distributions---methods robust to noise score poorly on the cleaner training set but generalize better to the noisier test set. This fundamentally challenges the use of cross-validation for model selection in small clinical datasets with distribution shift.
+
+\noindent\textbf{Law 4: Naive Combination of Good Methods Can Hurt.}
+Combining V5's data cleaning with V4's feature selection (V6) yields 0.576---\textit{worse than either method alone} (V5$=$0.625, V4$=$0.590). Similarly, combining item-specific features with V7's Track~2 strategy (V13) yields 0.645, below V7's 0.666. Each method's internal assumptions are optimized for its own feature space; merging them creates conflicts that degrade performance.
+
+\noindent\textbf{Law 3: Rules Integrated at the Prediction Layer Outperform Rules as Features.}
+Using clinical rules as input features (V5, $+0.035$) is less effective than hybrid fusion at the prediction layer (V7, $+0.076$). When rules are encoded as features, the ML model can ``dilute'' or override the clinical signal through overfitting on the small training set. Prediction-layer integration preserves clinical knowledge as an independent signal source that cannot be overridden.
+
+\subsection{Gap Analysis}
+\label{sec:gap}
+
+Our best score (0.666) trails the leaderboard leader (0.918) by 0.252. Based on our decomposition analysis, Track~1 accounts for the vast majority of this gap. We hypothesize that top-performing teams likely employ: (1)~deep learning architectures (\eg, ST-GCN~\cite{yan2018spatial} or Transformers) directly on raw keypoint sequences, enabling end-to-end temporal feature learning; (2)~pre-training on external gait datasets; (3)~multi-task learning jointly optimizing Track~1 and Track~2; and (4)~sophisticated data augmentation including temporal warping and viewpoint synthesis. Our handcrafted feature approach fundamentally limits the model's capacity to discover discriminative patterns beyond predefined joint angles.
