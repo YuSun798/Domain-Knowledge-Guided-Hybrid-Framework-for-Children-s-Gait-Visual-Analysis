@@ -11,7 +11,18 @@ For Track~1, the score combines item-level accuracy and normalized RMSE of total
 $S_1 = (\text{Acc}_1 + 1 - \text{RMSE}/34) / 2$.
 For Track~2, the score combines limb-level accuracy and macro F1:
 $S_2 = (\text{Acc}_2 + F1_{\text{macro}}) / 2$.
-The final score is $S = (S_1 + S_2) / 2$.
+The originally announced composite score was $S = (S_1 + S_2) / 2$. The organizers subsequently reported a post-challenge weighting of $S = 0.7S_1 + 0.3S_2$ for their final re-evaluation, owing to Track~2's small-sample bias~\cite{cv4chl2026}. Accordingly, our recorded version scores below are historical competition feedback and must not be interpreted as scores from the organizers' final standardized re-evaluation.
+
+
+\subsection{Evaluation Protocol and Interpretation}
+\label{sec:protocol}
+The CGPS recordings represent multiple views and potentially multiple trials of the same patient; hence, frame-level or video-level random splitting would risk patient-identity leakage. The appropriate independent unit for model selection is the patient. We report the originally recorded solution-version feedback as descriptive evidence, not as a new patient-disjoint controlled benchmark. The official organizers later performed three standardized evaluations, including alternative train/test partitions, and revised the relative track weights~\cite{cv4chl2026}. This difference in evaluation protocol limits comparisons between our historical version scores and the final official rankings.
+
+\noindent\textbf{Data scope and label semantics.}
+The source dataset contains 110 pediatric participants, 1,185 video recordings and 339,236 annotated frames, with 133 WholeBody landmarks per frame. The challenge supplies pose sequences and metadata instead of releasing the original patient videos. Track~1 binarizes the three-level clinical EVGS categories by mapping moderate and severe deviations to the positive class; Track~2 predicts one of five gait patterns for each limb. Our reported training/test counts refer to the challenge task subsets, not the full set of 110 patients.
+
+\noindent\textbf{Reproducibility boundary.}
+The solution-version comparisons were conducted during iterative competition development. Because some variants jointly changed preprocessing, features, model settings and decision rules, the reported differences should be treated as observational comparisons rather than independent causal estimates. No confidence intervals, external hospital validation or prospective clinical assessment are available in the present study.
 
 \subsection{Implementation Details}
 \label{sec:implementation}
@@ -149,4 +160,4 @@ Using clinical rules as input features (V5, $+0.035$) is less effective than hyb
 \subsection{Gap Analysis}
 \label{sec:gap}
 
-Our best score (0.666) trails the leaderboard leader (0.918) by 0.252. Based on our decomposition analysis, Track~1 accounts for the vast majority of this gap. We hypothesize that top-performing teams likely employ: (1)~deep learning architectures (\eg, ST-GCN~\cite{yan2018spatial} or Transformers) directly on raw keypoint sequences, enabling end-to-end temporal feature learning; (2)~pre-training on external gait datasets; (3)~multi-task learning jointly optimizing Track~1 and Track~2; and (4)~sophisticated data augmentation including temporal warping and viewpoint synthesis. Our handcrafted feature approach fundamentally limits the model's capacity to discover discriminative patterns beyond predefined joint angles.
+Our best recorded score (0.666) should not be directly compared against the organizers' later post-challenge ranking, which used additional evaluation splits and a revised track weighting. Our within-submission decomposition suggests that most of our measured gain over the V1 baseline arose from Track~2, leaving Track~1 as a key opportunity for further improvement. We hypothesize that top-performing teams likely employ: (1)~deep learning architectures (\eg, ST-GCN~\cite{yan2018spatial} or Transformers) directly on raw keypoint sequences, enabling end-to-end temporal feature learning; (2)~pre-training on external gait datasets; (3)~multi-task learning jointly optimizing Track~1 and Track~2; and (4)~sophisticated data augmentation including temporal warping and viewpoint synthesis. Our handcrafted feature approach fundamentally limits the model's capacity to discover discriminative patterns beyond predefined joint angles.
