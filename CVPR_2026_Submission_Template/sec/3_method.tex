@@ -4,49 +4,46 @@
 Our framework consists of four stages: data preprocessing, feature engineering, model training and prediction, and post-processing. Figure~\ref{fig:pipeline} illustrates the overall pipeline.
 
 \begin{figure*}[t]
-  \centering
-  \begin{subfigure}{0.24\linewidth}
-    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
-      \centering\footnotesize
-      \textbf{Stage 1}\\[3pt]
-      Hierarchical\\Data Cleaning\\[3pt]
-      Confidence filter\\$\downarrow$\\Double-pass SG\\$\downarrow$\\Outlier interp.
-    }}
-    \caption{Data cleaning}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.24\linewidth}
-    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
-      \centering\footnotesize
-      \textbf{Stage 2}\\[3pt]
-      Feature\\Engineering\\[3pt]
-      Spatial norm.\\$\downarrow$\\View-specific\\angles\\$\downarrow$\\Clinical features
-    }}
-    \caption{Features}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.24\linewidth}
-    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
-      \centering\footnotesize
-      \textbf{Stage 3}\\[3pt]
-      Dual-Track\\Prediction\\[3pt]
-      T1: Per-item\\ensemble\\[3pt]
-      T2: 60\%ML\\+ 40\%Rules
-    }}
-    \caption{Prediction}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.24\linewidth}
-    \fbox{\parbox[c][1.8in][c]{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{%
-      \centering\footnotesize
-      \textbf{Stage 4}\\[3pt]
-      Post-\\Processing\\[3pt]
-      Cross-version\\ensemble\\$\downarrow$\\Bilateral\\symmetry prior
-    }}
-    \caption{Post-processing}
-  \end{subfigure}
-  \caption{\textbf{Overview of our domain-knowledge-guided hybrid framework.} The pipeline comprises four stages: (a)~hierarchical data cleaning with confidence filtering, temporal smoothing, and outlier interpolation; (b)~clinically-informed feature engineering extracting view-specific biomechanical features; (c)~dual-track prediction with ensemble ML for Track~1 and hybrid clinical-ML fusion for Track~2; (d)~cross-version ensemble and bilateral symmetry post-processing.}
-  \label{fig:pipeline}
+\centering
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize, >=Latex,
+  stage/.style={draw=blue!45!black,rounded corners=3pt,fill=blue!5,
+     minimum width=2.55cm,minimum height=1.55cm,align=center,inner sep=5pt},
+  head/.style={font=\sffamily\bfseries\scriptsize,text=blue!35!black},
+  flow/.style={-{Latex[length=2mm]},thick,draw=blue!50!black},
+  out/.style={draw=teal!55!black,rounded corners=3pt,fill=teal!7,
+     minimum width=3.2cm,minimum height=0.95cm,align=center,inner sep=4pt},
+  clinical/.style={draw=orange!75!black,rounded corners=3pt,fill=orange!8,
+     minimum width=3.0cm,minimum height=0.65cm,align=center,inner sep=4pt}
+]
+\node[stage] (data) at (0,0) {\textbf{CGPS input}\\[3pt]110 children; 1,185 videos\\339,236 frames; 133 keypoints\\Multi-view 2D pose + confidence};
+\node[stage] (clean) at (3.2,0) {\textbf{Pose quality control}\\[3pt]Confidence mask ($\tau=0.3$)\\Temporal interpolation\\Two-pass Savitzky--Golay};
+\node[stage] (feat) at (6.4,0) {\textbf{Biomechanical features}\\[3pt]Hip-centered normalization\\Sagittal / coronal angles\\Statistics + clinical indicators};
+\node[stage] (learn) at (9.6,0) {\textbf{Small-data learning}\\[3pt]GB / RF / Extra Trees\\Stabilized feature selection\\Multi-seed ensemble};
+\draw[flow] (data)--(clean);
+\draw[flow] (clean)--(feat);
+\draw[flow] (feat)--(learn);
+\node[out] (t1) at (7.5,-2.35) {\textbf{Track 1: EVGS}\\34 binary limb-level scores\\Total score = sum of item scores};
+\node[out] (t2) at (11.3,-2.35) {\textbf{Track 2: CP gait patterns}\\5-class classification per limb\\ML + clinical-rule fusion};
+\node[clinical] (rules) at (3.4,-2.35) {\textbf{Clinical prior}\\Equinus / jump / apparent\\equinus / crouch / WNL};
+\draw[flow] (learn.south) -- ++(0,-0.38) -| (t1.north);
+\draw[flow] (learn.south) -- ++(0,-0.38) -| (t2.north);
+\draw[flow] (rules.east) -- node[above,font=\tiny]{rule probabilities} (t2.west);
+\draw[flow,dashed] (t1.east) -- node[above,font=\tiny]{EVGS transfer} (t2.west);
+\node[draw=black!35,rounded corners=2pt,fill=black!3,align=center,
+      minimum width=7.4cm,minimum height=0.57cm] (post) at (9.4,-4.0)
+      {Patient-level aggregation $\cdot$ bilateral symmetry prior $\cdot$ cross-version voting};
+\draw[flow] (t1.south) -- ++(0,-0.35) -| (post.north);
+\draw[flow] (t2.south) -- (post.north);
+\end{tikzpicture}
+\caption{\textbf{Domain-knowledge-guided hybrid framework for pediatric gait analysis.}
+The challenge supplies multi-view 2D pose sequences rather than raw patient videos.
+Confidence-aware preprocessing and view-specific kinematic features feed small-sample
+tree ensembles. Track 1 predicts bilateral Edinburgh Visual Gait Score (EVGS) items;
+Track 2 combines learned gait-pattern probabilities with clinically motivated rules,
+with EVGS-based cross-task transfer. Patient-level priors and cross-version voting
+are applied after prediction. Dashed arrows indicate optional cross-track information transfer.}
+\label{fig:pipeline}
 \end{figure*}
 
 \subsection{Hierarchical Data Cleaning}
